@@ -1,0 +1,11 @@
+.widgets = [ 
+    @widgets("distro"),
+    @widgets("uptime"),
+    @widgets("kernel"),
+    @widgets("desktop"),
+    @widgets("shell"),
+    @widgets("memory"),
+    @widgets("battery"),
+    @widgets("cpu"),
+    @widgets("disk"),
+],

@@ -1,0 +1,17 @@
+root = Config
+
+@widgets = enum { 
+    distro,
+    uptime,
+    kernel,
+    desktop,
+    shell,
+    memory,
+    battery,
+    cpu,
+    disk,
+},
+
+struct Config {
+    widgets: [@widgets],
+}

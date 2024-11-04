@@ -1,0 +1,20 @@
+.{
+    .name = "zysys",
+    .version = "0.1.0",
+    .minimum_zig_version = "0.14.0-dev.2126+e27b4647d",
+
+    .dependencies = .{
+        // Move to https://github.com/kristoff-it/ziggy/tree/zig-0.14.0-dev 
+        // once https://github.com/kristoff-it/ziggy/pull/43 has been merged.
+        .ziggy = .{
+            .url = "git+https://github.com/BrookJeynes/ziggy?ref=add-enum-support#fb224b22f0a30005e521bde9a874bc959463362b",
+            .hash = "122034c46e43d6d7bc031caad233eb2547352df32e2a2b00fa494742ef6bca52d161",
+        },
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
