@@ -102,7 +102,7 @@ pub fn main() !void {
                 const uptime = stats.getUptime() catch continue;
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{[days]} {[hours]} {[minutes]}\n",
+                    "{s[header]: <[padding]}{[days]}d {[hours]}h {[minutes]}m\n",
                     .{
                         .header = "uptime",
                         .days = uptime.days,
