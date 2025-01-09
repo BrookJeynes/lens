@@ -1,0 +1,67 @@
+name: Create draft release
+
+on:
+  workflow_dispatch:
+
+env:
+  # https://github.com/cli/cli/issues/9514#issuecomment-2311517523
+  GH_TOKEN: ${{ secrets.TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Zig
+        uses: korandoru/setup-zig@v1
+        with:
+          zig-version: "master"
+
+      - name: Build application
+        run: |
+          zig build -Dall-targets
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: builds
+          path: zig-out/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create tarballs
+        run: |
+          mkdir -p tarballs
+          for dir in artifacts/builds/*; do
+            if [ -d "$dir" ] && [ $(basename "$dir") != "bin" ]; then
+              tar -czf "tarballs/$(basename "$dir").tar.gz" -C "$dir" .
+            fi
+          done
+
+      - name: gh log
+        run: |
+          gh --version
+          gh auth status
+
+      - name: Create release
+        run: |
+          gh release create ${{ github.ref_name }} tarballs/* \
+            --title "Release ${{ github.ref_name }}" \
+            --notes "Automated release with build artifacts." \
+            --draft
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

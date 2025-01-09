@@ -37,6 +37,10 @@ const default_config = Config{
     },
 };
 
+const CONFIG_NAME = "config.ziggy";
+const HOME_DIR_NAME = ".lens";
+const XDG_CONFIG_HOME_DIR_NAME = "lens";
+
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -47,27 +51,47 @@ pub fn main() !void {
 
     // Read config
     const config = lbl: {
-        var config_path: []u8 = undefined;
-        defer alloc.free(config_path);
+        var config_dir = dir: {
+            if (try environment.getXdgConfigHomeDir()) |home_dir| {
+                defer {
+                    var dir = home_dir;
+                    dir.close();
+                }
 
-        var config_home: std.fs.Dir = undefined;
-        defer config_home.close();
+                if (!environment.dirExists(home_dir, XDG_CONFIG_HOME_DIR_NAME)) {
+                    break :lbl default_config;
+                }
 
-        if (try environment.get_xdg_config_home_dir()) |path| {
-            config_home = path;
-            config_path = try std.fs.path.join(alloc, &.{ "zysys", "config.ziggy" });
-        } else {
-            if (try environment.get_home_dir()) |path| {
-                config_home = path;
-                config_path = try std.fs.path.join(alloc, &.{ ".config", "zysys", "config.ziggy" });
+                const dir = try home_dir.openDir(XDG_CONFIG_HOME_DIR_NAME, .{ .iterate = true });
+                if (!environment.fileExists(dir, CONFIG_NAME)) {
+                    break :lbl default_config;
+                }
+
+                break :dir dir;
             }
-        }
 
-        if (!environment.file_exists(config_home, config_path)) {
+            if (try environment.getHomeDir()) |home_dir| {
+                defer {
+                    var dir = home_dir;
+                    dir.close();
+                }
+
+                if (!environment.dirExists(home_dir, HOME_DIR_NAME)) {
+                    break :lbl default_config;
+                }
+
+                const dir = try home_dir.openDir(HOME_DIR_NAME, .{ .iterate = true });
+                if (!environment.fileExists(dir, CONFIG_NAME)) {
+                    break :lbl default_config;
+                }
+
+                break :dir dir;
+            }
+
             break :lbl default_config;
-        }
+        };
 
-        const contents = config_home.readFileAlloc(alloc, config_path, 4096) catch break :lbl default_config;
+        const contents = config_dir.readFileAlloc(alloc, CONFIG_NAME, 4096) catch break :lbl default_config;
         defer alloc.free(contents);
         const contentsZ = try alloc.dupeZ(u8, contents);
         defer alloc.free(contentsZ);

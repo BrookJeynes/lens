@@ -7,6 +7,21 @@ const release_targets: []const std.Target.Query = &.{
     .{ .cpu_arch = .x86_64, .os_tag = .macos },
 };
 
+fn createExe(b: *std.Build, exe_name: []const u8, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
+    const ziggy = b.dependency("ziggy", .{ .target = target, .optimize = optimize }).module("ziggy");
+
+    const exe = b.addExecutable(.{
+        .name = exe_name,
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    exe.root_module.addImport("ziggy", ziggy);
+
+    return exe;
+}
+
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -18,19 +33,7 @@ pub fn build(b: *std.Build) !void {
         return;
     }
 
-    const ziggy_dep = b.dependency("ziggy", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    const ziggy = ziggy_dep.module("ziggy");
-
-    const exe = b.addExecutable(.{
-        .name = "zysys",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    exe.root_module.addImport("ziggy", ziggy);
+    const exe = try createExe(b, "lens", target, optimize);
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
@@ -47,19 +50,7 @@ fn build_targets(b: *std.Build) !void {
     for (release_targets) |t| {
         const target = b.resolveTargetQuery(t);
 
-        const ziggy_dep = b.dependency("ziggy", .{
-            .target = target,
-            .optimize = .ReleaseSafe,
-        });
-        const ziggy = ziggy_dep.module("ziggy");
-
-        const exe = b.addExecutable(.{
-            .name = "zysys",
-            .root_source_file = b.path("src/main.zig"),
-            .target = target,
-            .optimize = .ReleaseSafe,
-        });
-        exe.root_module.addImport("ziggy", ziggy);
+        const exe = try createExe(b, "lens", target, .ReleaseSafe);
         b.installArtifact(exe);
 
         const target_output = b.addInstallArtifact(exe, .{

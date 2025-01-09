@@ -1,14 +1,12 @@
 .{
-    .name = "zysys",
-    .version = "0.1.1",
-    .minimum_zig_version = "0.14.0-dev.2126+e27b4647d",
+    .name = "lens",
+    .version = "0.2.0",
+    .minimum_zig_version = "0.14.0-dev.2628+5b5c60f43",
 
     .dependencies = .{
-        // Move to https://github.com/kristoff-it/ziggy/tree/zig-0.14.0-dev 
-        // once https://github.com/kristoff-it/ziggy/pull/43 has been merged.
         .ziggy = .{
-            .url = "git+https://github.com/BrookJeynes/ziggy?ref=add-enum-support#fb224b22f0a30005e521bde9a874bc959463362b",
-            .hash = "122034c46e43d6d7bc031caad233eb2547352df32e2a2b00fa494742ef6bca52d161",
+            .url = "git+https://github.com/kristoff-it/ziggy?ref=zig-0.14.0-dev#b807ecacdfe3d8e7f3cee15e0905eb6e0a75424b",
+            .hash = "12205d8c19f4e2fae9157e45ac1f03fc56a5a268d7e60d9e89176acb4c20c2edfa29",
         },
     },
 
