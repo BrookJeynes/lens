@@ -1,12 +1,13 @@
 .{
-    .name = "lens",
+    .fingerprint = 0x2cdaf8c397088e72,
+    .name = .lens,
     .version = "0.2.0",
-    .minimum_zig_version = "0.14.0-dev.2628+5b5c60f43",
+    .minimum_zig_version = "0.15.2",
 
     .dependencies = .{
         .ziggy = .{
-            .url = "git+https://github.com/kristoff-it/ziggy?ref=zig-0.14.0-dev#b807ecacdfe3d8e7f3cee15e0905eb6e0a75424b",
-            .hash = "12205d8c19f4e2fae9157e45ac1f03fc56a5a268d7e60d9e89176acb4c20c2edfa29",
+            .url = "https://github.com/kristoff-it/ziggy/archive/4353b20ef2ac750e35c6d68e4eb2a07c2d7cf901.tar.gz",
+            .hash = "ziggy-0.1.0-kTg8v5pABgDztlefWHceH-Sh8tVveguFC61QkmLkIRaA",
         },
     },
 

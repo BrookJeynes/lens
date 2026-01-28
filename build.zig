@@ -12,9 +12,11 @@ fn createExe(b: *std.Build, exe_name: []const u8, target: std.Build.ResolvedTarg
 
     const exe = b.addExecutable(.{
         .name = exe_name,
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     exe.root_module.addImport("ziggy", ziggy);

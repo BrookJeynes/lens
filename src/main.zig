@@ -42,7 +42,10 @@ const HOME_DIR_NAME = ".lens";
 const XDG_CONFIG_HOME_DIR_NAME = "lens";
 
 pub fn main() !void {
-    const stdout = std.io.getStdOut().writer();
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    const stdout = &stdout_writer.interface;
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     var arena = std.heap.ArenaAllocator.init(gpa.allocator());
@@ -108,7 +111,7 @@ pub fn main() !void {
     const header = try std.fmt.bufPrint(&header_buf, "{s}@{s}\n", .{ user_env, distro_id });
 
     try stdout.writeAll(header);
-    try stdout.print("{s[str]:-<[count]}\n", .{ .str = "-", .count = header.len + 1 });
+    try stdout.print("{[str]s:-<[count]}\n", .{ .str = "-", .count = header.len + 1 });
 
     // Print widgets
     for (config.widgets) |widget| {
@@ -118,7 +121,7 @@ pub fn main() !void {
                 defer alloc.free(distro);
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{s[stat]}\n",
+                    "{[header]s: <[padding]}{[stat]s}\n",
                     .{ .header = "distro", .stat = distro, .padding = padding },
                 );
             },
@@ -126,7 +129,7 @@ pub fn main() !void {
                 const uptime = stats.getUptime() catch continue;
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{[days]}d {[hours]}h {[minutes]}m\n",
+                    "{[header]s: <[padding]}{[days]d}d {[hours]d}h {[minutes]d}m\n",
                     .{
                         .header = "uptime",
                         .days = uptime.days,
@@ -141,7 +144,7 @@ pub fn main() !void {
                 const release = std.mem.sliceTo(&utsname.release, 0);
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{s[stat]}\n",
+                    "{[header]s: <[padding]}{[stat]s}\n",
                     .{ .header = "kernel", .stat = release, .padding = padding },
                 );
             },
@@ -150,7 +153,7 @@ pub fn main() !void {
                 defer alloc.free(desktop);
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{s[stat]}\n",
+                    "{[header]s: <[padding]}{[stat]s}\n",
                     .{ .header = "desktop", .stat = desktop, .padding = padding },
                 );
             },
@@ -159,7 +162,7 @@ pub fn main() !void {
                 defer alloc.free(shell);
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{s[stat]}\n",
+                    "{[header]s: <[padding]}{[stat]s}\n",
                     .{ .header = "shell", .stat = shell, .padding = padding },
                 );
             },
@@ -168,7 +171,7 @@ pub fn main() !void {
                 defer alloc.free(mem);
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{s[stat]}\n",
+                    "{[header]s: <[padding]}{[stat]s}\n",
                     .{ .header = "memory", .stat = mem, .padding = padding },
                 );
             },
@@ -177,7 +180,7 @@ pub fn main() !void {
                 defer alloc.free(battery);
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{s[stat]}\n",
+                    "{[header]s: <[padding]}{[stat]s}\n",
                     .{ .header = "battery", .stat = battery, .padding = padding },
                 );
             },
@@ -186,7 +189,7 @@ pub fn main() !void {
                 defer alloc.free(cpu);
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{s[stat]}\n",
+                    "{[header]s: <[padding]}{[stat]s}\n",
                     .{ .header = "cpu", .stat = cpu, .padding = padding },
                 );
             },
@@ -195,10 +198,12 @@ pub fn main() !void {
                 defer alloc.free(disk);
 
                 try stdout.print(
-                    "{s[header]: <[padding]}{s[stat]}\n",
+                    "{[header]s: <[padding]}{[stat]s}\n",
                     .{ .header = "disk", .stat = disk, .padding = padding },
                 );
             },
         }
     }
+
+    try stdout.flush();
 }
