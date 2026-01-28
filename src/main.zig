@@ -1,9 +1,11 @@
 const std = @import("std");
 const builtin = @import("builtin");
+
+const ziggy = @import("ziggy");
+
+const environment = @import("environment.zig");
 const stats = @import("stats.zig");
 const sys_info = @import("sys_info.zig");
-const environment = @import("environment.zig");
-const ziggy = @import("ziggy");
 
 const padding: u8 = 9;
 

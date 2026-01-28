@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const BufferedFileIterator = @import("buffered_file_iter.zig");
+
 const process = @import("process.zig");
 
 pub fn getCpu(alloc: std.mem.Allocator) ![]const u8 {
@@ -12,10 +12,10 @@ pub fn getCpu(alloc: std.mem.Allocator) ![]const u8 {
             );
             defer file.close();
 
-            var file_it = BufferedFileIterator.init(alloc, file.reader().any());
-            defer file_it.deinit();
+            var file_buffer: [1024]u8 = undefined;
+            var file_reader = file.reader(&file_buffer);
 
-            while (try file_it.next()) |line| {
+            while (try file_reader.interface.takeDelimiter('\n')) |line| {
                 if (std.mem.startsWith(u8, line, "model name")) {
                     var name_it = std.mem.tokenizeScalar(u8, line, ':');
                     _ = name_it.next(); // Skip "model name :"
@@ -106,10 +106,10 @@ pub fn getDistro(alloc: std.mem.Allocator) ![]const u8 {
             );
             defer file.close();
 
-            var file_it = BufferedFileIterator.init(alloc, file.reader().any());
-            defer file_it.deinit();
+            var file_buffer: [1024]u8 = undefined;
+            var file_reader = file.reader(&file_buffer);
 
-            while (try file_it.next()) |line| {
+            while (try file_reader.interface.takeDelimiter('\n')) |line| {
                 if (std.mem.startsWith(u8, line, "PRETTY_NAME")) {
                     var name_it = std.mem.tokenizeScalar(u8, line, '=');
                     _ = name_it.next(); // Skip "NAME="
@@ -151,10 +151,10 @@ pub fn getDistroId(alloc: std.mem.Allocator) ![]const u8 {
             );
             defer file.close();
 
-            var file_it = BufferedFileIterator.init(alloc, file.reader().any());
-            defer file_it.deinit();
+            var file_buffer: [1024]u8 = undefined;
+            var file_reader = file.reader(&file_buffer);
 
-            while (try file_it.next()) |line| {
+            while (try file_reader.interface.takeDelimiter('\n')) |line| {
                 if (std.mem.startsWith(u8, line, "ID")) {
                     var id_it = std.mem.tokenizeScalar(u8, line, '=');
                     _ = id_it.next(); // Skip "ID="

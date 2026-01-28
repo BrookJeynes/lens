@@ -1,8 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const BufferedFileIterator = @import("buffered_file_iter.zig");
 
 pub fn getParentPid(alloc: std.mem.Allocator, pid: std.c.pid_t) !std.c.pid_t {
+    _ = alloc;
     switch (builtin.os.tag) {
         .linux, .openbsd => {
             var buf: [std.fs.max_path_bytes]u8 = undefined;
@@ -11,10 +11,10 @@ pub fn getParentPid(alloc: std.mem.Allocator, pid: std.c.pid_t) !std.c.pid_t {
             const file = try std.fs.openFileAbsolute(path, .{ .mode = .read_only });
             defer file.close();
 
-            var file_it = BufferedFileIterator.init(alloc, file.reader().any());
-            defer file_it.deinit();
+            var file_buffer: [1024]u8 = undefined;
+            var file_reader = file.reader(&file_buffer);
 
-            while (try file_it.next()) |line| {
+            while (try file_reader.interface.takeDelimiter('\n')) |line| {
                 if (std.mem.startsWith(u8, line, "PPid")) {
                     var ppid_it = std.mem.splitScalar(u8, line, ':');
                     _ = ppid_it.next(); // Skip "PPid:"
@@ -43,10 +43,10 @@ pub fn getProcessName(alloc: std.mem.Allocator, pid: std.c.pid_t) ![]const u8 {
             const file = try std.fs.openFileAbsolute(path, .{ .mode = .read_only });
             defer file.close();
 
-            var file_it = BufferedFileIterator.init(alloc, file.reader().any());
-            defer file_it.deinit();
+            var file_buffer: [1024]u8 = undefined;
+            var file_reader = file.reader(&file_buffer);
 
-            while (try file_it.next()) |line| {
+            while (try file_reader.interface.takeDelimiter('\n')) |line| {
                 if (std.mem.startsWith(u8, line, "Name")) {
                     var name_it = std.mem.splitScalar(u8, line, ':');
                     _ = name_it.next(); // Skip "Name:"

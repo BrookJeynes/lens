@@ -1,6 +1,5 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const BufferedFileIterator = @import("buffered_file_iter.zig");
 
 pub fn getBattery(alloc: std.mem.Allocator) ![]const u8 {
     switch (builtin.os.tag) {
@@ -85,14 +84,15 @@ pub fn getMemory(alloc: std.mem.Allocator, options: struct { mb: bool }) ![]cons
             const file = try std.fs.openFileAbsolute("/proc/meminfo", .{ .mode = .read_only });
             defer file.close();
 
-            var file_it = BufferedFileIterator.init(alloc, file.reader().any());
-            defer file_it.deinit();
+            var file_buffer: [1024]u8 = undefined;
+            var file_reader = file.reader(&file_buffer);
 
             const dividend: usize = if (options.mb) 1000 else 1024;
             const suffix = if (options.mb) "MB" else "MiB";
 
             const mem_total = lbl: {
-                const line = try file_it.next() orelse return error.MemTotalIsNotSpecified;
+
+                const line = try file_reader.interface.takeDelimiter('\n') orelse return error.MemAvailableIsNotSpecified;
                 var line_it = std.mem.splitScalar(u8, line, ':');
                 _ = line_it.next(); // Skip "MemTotal:"
                 const mem_total_with_suffix = line_it.next() orelse return error.MemTotalIsNull;
@@ -102,10 +102,10 @@ pub fn getMemory(alloc: std.mem.Allocator, options: struct { mb: bool }) ![]cons
                 break :lbl mem_total_int;
             };
 
-            _ = try file_it.next(); // Skip "MemFree: x"
+            _ = try file_reader.interface.takeDelimiter('\n'); // Skip "MemFree: x"
 
             const mem_available = lbl: {
-                const line = try file_it.next() orelse return error.MemAvailableIsNotSpecified;
+                const line = try file_reader.interface.takeDelimiter('\n') orelse return error.MemAvailableIsNotSpecified;
                 var line_it = std.mem.splitScalar(u8, line, ':');
                 _ = line_it.next(); // Skip "MemAvailable:"
                 const mem_available_with_suffix = line_it.next() orelse return error.MemAvailableIsNull;
