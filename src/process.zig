@@ -1,65 +1,44 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-pub fn getParentPid(alloc: std.mem.Allocator, pid: std.c.pid_t) !std.c.pid_t {
-    _ = alloc;
+pub const ProcessInfo = struct {
+    name: []const u8,
+    ppid: std.c.pid_t,
+};
+
+pub fn getProcessInfo(alloc: std.mem.Allocator, pid: std.c.pid_t) !ProcessInfo {
     switch (builtin.os.tag) {
         .linux, .openbsd => {
-            var buf: [std.fs.max_path_bytes]u8 = undefined;
-            const path = try std.fmt.bufPrint(&buf, "/proc/{d}/status", .{pid});
+            var path_buf: [std.fs.max_path_bytes]u8 = undefined;
+            const path = try std.fmt.bufPrint(&path_buf, "/proc/{d}/stat", .{pid});
 
             const file = try std.fs.openFileAbsolute(path, .{ .mode = .read_only });
             defer file.close();
 
-            var file_buffer: [1024]u8 = undefined;
-            var file_reader = file.reader(&file_buffer);
+            var file_buffer: [4096]u8 = undefined;
+            const bytes_read = try file.readAll(&file_buffer);
+            const content = file_buffer[0..bytes_read];
 
-            while (try file_reader.interface.takeDelimiter('\n')) |line| {
-                if (std.mem.startsWith(u8, line, "PPid")) {
-                    var ppid_it = std.mem.splitScalar(u8, line, ':');
-                    _ = ppid_it.next(); // Skip "PPid:"
-                    const ppid_str = ppid_it.next() orelse return error.PpidIsNull;
-                    const ppid = try std.fmt.parseInt(
-                        std.c.pid_t,
-                        std.mem.trim(u8, ppid_str, " \t"),
-                        10,
-                    );
-                    return ppid;
-                }
-            }
+            const name_start = std.mem.indexOf(u8, content, "(") orelse return error.InvalidStatFormat;
+            const name_end = std.mem.lastIndexOf(u8, content, ")") orelse return error.InvalidStatFormat;
 
-            return error.PpidIsNotSpecified;
-        },
-        else => return error.UnsupportedOs,
-    }
-}
+            if (name_end <= name_start + 1) return error.InvalidStatFormat;
 
-pub fn getProcessName(alloc: std.mem.Allocator, pid: std.c.pid_t) ![]const u8 {
-    switch (builtin.os.tag) {
-        .linux, .openbsd => {
-            var buf: [std.fs.max_path_bytes]u8 = undefined;
-            const path = try std.fmt.bufPrint(&buf, "/proc/{d}/status", .{pid});
+            const name = try alloc.dupe(u8, content[name_start + 1 .. name_end]);
 
-            const file = try std.fs.openFileAbsolute(path, .{ .mode = .read_only });
-            defer file.close();
+            const after_name = content[name_end + 1 ..];
+            var field_it = std.mem.tokenizeAny(u8, after_name, " \t\n");
 
-            var file_buffer: [1024]u8 = undefined;
-            var file_reader = file.reader(&file_buffer);
+            // Skip state field
+            _ = field_it.next() orelse return error.InvalidStatFormat;
 
-            while (try file_reader.interface.takeDelimiter('\n')) |line| {
-                if (std.mem.startsWith(u8, line, "Name")) {
-                    var name_it = std.mem.splitScalar(u8, line, ':');
-                    _ = name_it.next(); // Skip "Name:"
-                    const process_name = std.mem.trim(
-                        u8,
-                        (name_it.next() orelse return error.NameIsNull),
-                        " \t",
-                    );
-                    return try alloc.dupe(u8, process_name);
-                }
-            }
+            const ppid_str = field_it.next() orelse return error.InvalidStatFormat;
+            const ppid = try std.fmt.parseInt(std.c.pid_t, ppid_str, 10);
 
-            return error.NameIsNotSpecified;
+            return ProcessInfo{
+                .name = name,
+                .ppid = ppid,
+            };
         },
         else => return error.UnsupportedOs,
     }

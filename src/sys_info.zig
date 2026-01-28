@@ -60,9 +60,12 @@ pub fn getShell(alloc: std.mem.Allocator) ![]const u8 {
     }
 
     // If $SHELL is not set, try find the shell via pid.
-    const pid = try process.getParentPid(alloc, std.os.linux.getppid());
-    const ppid = try process.getParentPid(alloc, pid);
-    return try process.getProcessName(alloc, ppid);
+    // Walk up the process tree: current -> parent -> grandparent
+    const parent_info = try process.getProcessInfo(alloc, std.os.linux.getppid());
+    defer alloc.free(parent_info.name);
+
+    const grandparent_info = try process.getProcessInfo(alloc, parent_info.ppid);
+    return grandparent_info.name;
 }
 
 pub fn getDesktop(alloc: std.mem.Allocator) ![]const u8 {

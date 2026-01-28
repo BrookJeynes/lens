@@ -140,7 +140,6 @@ pub fn getUptime() !struct { days: isize, minutes: isize, hours: isize } {
             if (std.os.linux.E.init(result) != .SUCCESS) {
                 return error.UnknownUptime;
             }
-            std.debug.print("{any}", .{info});
             const uptime = info.uptime;
 
             const uptime_days = @divTrunc(uptime, 86400);
