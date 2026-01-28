@@ -91,7 +91,6 @@ pub fn getMemory(alloc: std.mem.Allocator, options: struct { mb: bool }) ![]cons
             const suffix = if (options.mb) "MB" else "MiB";
 
             const mem_total = lbl: {
-
                 const line = try file_reader.interface.takeDelimiter('\n') orelse return error.MemAvailableIsNotSpecified;
                 var line_it = std.mem.splitScalar(u8, line, ':');
                 _ = line_it.next(); // Skip "MemTotal:"
@@ -133,30 +132,20 @@ pub fn getMemory(alloc: std.mem.Allocator, options: struct { mb: bool }) ![]cons
     }
 }
 
-pub fn getUptime() !struct { days: usize, minutes: usize, hours: usize } {
+pub fn getUptime() !struct { days: isize, minutes: isize, hours: isize } {
     switch (builtin.os.tag) {
         .linux, .openbsd => {
-            const file = try std.fs.openFileAbsolute(
-                "/proc/uptime",
-                .{ .mode = .read_only },
-            );
-            defer file.close();
+            var info: std.os.linux.Sysinfo = undefined;
+            const result: usize = std.os.linux.sysinfo(&info);
+            if (std.os.linux.E.init(result) != .SUCCESS) {
+                return error.UnknownUptime;
+            }
+            std.debug.print("{any}", .{info});
+            const uptime = info.uptime;
 
-            var uptime_buf: [1024]u8 = undefined;
-            const bytes = try file.readAll(&uptime_buf);
-            const uptime_str = uptime_buf[0..bytes];
-
-            var uptime_it = std.mem.splitScalar(u8, uptime_str, ' ');
-            const uptime: usize = @intFromFloat(
-                try std.fmt.parseFloat(
-                    f32,
-                    uptime_it.next() orelse return error.UptimeIsNull,
-                ),
-            );
-
-            const uptime_days = uptime / 86400;
-            const uptime_hours = (uptime % 86400) / 3600;
-            const uptime_minutes = (uptime % 3600) / 60;
+            const uptime_days = @divTrunc(uptime, 86400);
+            const uptime_hours = @divTrunc(@rem(uptime, 86400), 3600);
+            const uptime_minutes = @divTrunc(@rem(uptime, 3600), 60);
 
             return .{
                 .days = uptime_days,
