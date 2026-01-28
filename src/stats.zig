@@ -152,6 +152,32 @@ pub fn getUptime() !struct { days: isize, minutes: isize, hours: isize } {
                 .hours = uptime_hours,
             };
         },
+        .macos => {
+            var boot_timeval: std.posix.timeval = undefined;
+            var size: usize = @sizeOf(@TypeOf(boot_timeval));
+            const kern_boottime = [_]c_int{ 1, 21 }; // CTL_KERN, KERN_BOOTTIME return void on macos
+            std.posix.sysctl(
+                &kern_boottime,
+                @ptrCast(&boot_timeval),
+                &size,
+                null,
+                0,
+            ) catch return error.SysctlFailed;
+
+            const now = std.time.timestamp();
+            const boot_time = boot_timeval.sec;
+            const uptime = now - boot_time;
+
+            const uptime_days = @divTrunc(uptime, 86400);
+            const uptime_hours = @divTrunc(@rem(uptime, 86400), 3600);
+            const uptime_minutes = @divTrunc(@rem(uptime, 3600), 60);
+
+            return .{
+                .days = uptime_days,
+                .minutes = uptime_minutes,
+                .hours = uptime_hours,
+            };
+        },
         else => return error.UnsupportedOs,
     }
 }
